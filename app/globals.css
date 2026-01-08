@@ -1,26 +1,38 @@
 @import "tailwindcss";
 
+/* --- A LINHA MÁGICA PARA TAILWIND v4 --- */
+/* Isso força o 'dark mode' a funcionar via classe (.dark), e não pelo sistema */
+@variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* MODO CLARO (Padrão) */
+  --background: #FFFFFF;
+  --foreground: #0c4a6e;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Define as variáveis de cor quando a classe .dark estiver presente */
+.dark {
+  --background: #020617;
+  --foreground: #e0f2fe;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@theme {
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-playfair);
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Garante a transição suave também nos títulos */
+h1, h2, h3, h4 {
+  transition: color 0.3s ease;
+}
+
+.dark h1, .dark h2, .dark h3 {
+  color: #f0f9ff;
 }
