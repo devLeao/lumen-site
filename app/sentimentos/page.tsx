@@ -3,68 +3,63 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Heart, X, Smile, Frown, CloudRain, Sun, Zap, Coffee } from "lucide-react";
+import { 
+  ArrowLeft, Heart, Share2, Quote, Zap, Coffee, Sun, CloudRain, Frown 
+} from "lucide-react";
+// Certifique-se que o caminho da importação está correto para onde você salvou o arquivo acima
+import { sentimentosDB } from "../sentimentosData"; 
 
-// --- 1. BANCO DE DADOS DE EMOÇÕES ---
-const SENTIMENTOS = {
+// --- CONFIGURAÇÃO VISUAL (Cores e Ícones do Menu) ---
+const SENTIMENTOS_CONFIG = {
   ansioso: {
     titulo: "Ansiedade",
     icone: <Zap size={40} />,
     cor: "bg-violet-500",
-    biblia: "Não andeis ansiosos por coisa alguma; em tudo, porém, sejam conhecidas, diante de Deus, as vossas petições, pela oração e pela súplica, com ações de graças. E a paz de Deus, que excede todo o entendimento, guardará os vossos corações.",
-    ref: "Filipenses 4:6-7",
-    oracao: "Senhor, acalma meu coração agitado. Tira de mim essa aflição que me consome e me impede de ver a Tua luz. Entrego em Tuas mãos o meu futuro, pois sei que cuidas de mim. Troco o meu medo pela Tua paz. Amém."
   },
   cansado: {
     titulo: "Cansaço",
     icone: <Coffee size={40} />,
     cor: "bg-amber-600",
-    biblia: "Vinde a mim, todos os que estais cansados e sobrecarregados, e eu vos aliviarei. Tomai sobre vós o meu jugo e aprendei de mim, que sou manso e humilde de coração; e achareis descanso para as vossas almas.",
-    ref: "Mateus 11:28-29",
-    oracao: "Jesus, sinto minhas forças se esgotarem. O peso do dia a dia está grande demais. Peço Teu descanso sagrado. Renova minhas energias, restaura minha esperança e deixa-me repousar em Teu abraço seguro. Amém."
   },
   grato: {
     titulo: "Gratidão",
     icone: <Sun size={40} />,
     cor: "bg-amber-400",
-    biblia: "Deem graças ao Senhor, porque ele é bom. O seu amor dura para sempre!",
-    ref: "Salmo 136:1",
-    oracao: "Pai Amado, hoje meu coração transborda de gratidão. Obrigado pelo dom da vida, pelos livramentos que não vi e pelas bênçãos que recebi. Que minha vida seja um eterno cântico de louvor a Ti. Amém."
   },
   triste: {
     titulo: "Tristeza",
     icone: <CloudRain size={40} />,
     cor: "bg-slate-500",
-    biblia: "Perto está o Senhor dos que têm o coração quebrantado e salva os de espírito oprimido.",
-    ref: "Salmo 34:18",
-    oracao: "Senhor, Tu conheces a dor que carrego no peito e as lágrimas que derramo em silêncio. Vem consolar minha alma, curar minhas feridas e transformar meu lamento em dança. Confio no Teu amor que nunca falha. Amém."
   },
   confuso: {
     titulo: "Confusão",
     icone: <Frown size={40} />,
     cor: "bg-rose-500",
-    biblia: "Confia no Senhor de todo o teu coração e não te estribes no teu próprio entendimento. Reconhece-o em todos os teus caminhos, e ele endireitará as tuas veredas.",
-    ref: "Provérbios 3:5-6",
-    oracao: "Espírito Santo, luz da minha alma, dissipa as trevas da dúvida. Não sei qual caminho seguir. Dá-me sabedoria, clareza e discernimento. Que eu ouça a Tua voz e tenha coragem para obedecer. Amém."
   },
   sozinho: {
     titulo: "Solidão",
     icone: <Heart size={40} />,
     cor: "bg-sky-500",
-    biblia: "E eis que estou convosco todos os dias, até a consumação dos séculos.",
-    ref: "Mateus 28:20",
-    oracao: "Meu Deus, sinto-me só, mas sei que nunca me abandonas. Preenche este vazio com a Tua presença. Sê meu amigo fiel, meu companheiro constante e lembra-me que sou amado(a) por Ti com um amor eterno. Amém."
   }
 };
 
+// Função para calcular o dia do ano (rotação diária)
+function getDayOfYear() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 0);
+  const diff = (now.getTime() - start.getTime()) + ((start.getTimezoneOffset() - now.getTimezoneOffset()) * 60 * 1000);
+  const oneDay = 1000 * 60 * 60 * 24;
+  return Math.floor(diff / oneDay);
+}
+
 function SentimentosContent() {
   const searchParams = useSearchParams();
-  const humorInicial = searchParams.get("humor"); // Pega o ?humor=ansioso da URL
+  const humorInicial = searchParams.get("humor");
   
   const [selecionado, setSelecionado] = useState<string | null>(null);
 
   useEffect(() => {
-    if (humorInicial && SENTIMENTOS[humorInicial as keyof typeof SENTIMENTOS]) {
+    if (humorInicial && SENTIMENTOS_CONFIG[humorInicial as keyof typeof SENTIMENTOS_CONFIG]) {
       setSelecionado(humorInicial);
     }
   }, [humorInicial]);
@@ -73,107 +68,128 @@ function SentimentosContent() {
     setSelecionado(chave);
   };
 
-  const currentData = selecionado ? SENTIMENTOS[selecionado as keyof typeof SENTIMENTOS] : null;
+  // --- LÓGICA DE SELEÇÃO DA MENSAGEM ---
+  let mensagemDeHoje = null;
+  let configVisual = null;
+
+  if (selecionado) {
+    // 1. Pega a lista de mensagens (fallback para 'ansioso' se der erro)
+    const listaMensagens = sentimentosDB[selecionado] || sentimentosDB['ansioso'];
+    
+    // 2. Calcula qual mensagem mostrar hoje (Rotação)
+    const indice = getDayOfYear() % listaMensagens.length;
+    mensagemDeHoje = listaMensagens[indice];
+
+    // 3. Pega configuração visual (ícone, título)
+    configVisual = SENTIMENTOS_CONFIG[selecionado as keyof typeof SENTIMENTOS_CONFIG];
+  }
 
   return (
-    <div className="w-full max-w-4xl mx-auto relative z-10">
+    <div className="w-full max-w-4xl mx-auto relative z-10 flex flex-col items-center">
       
-      {/* TÍTULO INICIAL */}
+      {/* --- TELA 1: MENU DE ESCOLHA (Se nada selecionado) --- */}
       {!selecionado && (
-        <div className="text-center mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <span className="inline-block p-3 bg-white dark:bg-slate-800 rounded-full shadow-md mb-4 text-rose-500">
-            <Heart size={32} fill="currentColor" />
-          </span>
-          <h1 className="font-serif text-4xl md:text-5xl text-sky-950 dark:text-white font-bold mb-4">
-            Como está seu coração?
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-lg">
-            Selecione o que você está sentindo para receber um remédio espiritual.
-          </p>
-        </div>
+        <>
+          <div className="text-center mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <span className="inline-block p-3 bg-white dark:bg-slate-800 rounded-full shadow-md mb-4 text-rose-500">
+              <Heart size={32} fill="currentColor" />
+            </span>
+            <h1 className="font-serif text-4xl md:text-5xl text-sky-950 dark:text-white font-bold mb-4">
+              Como está seu coração?
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 text-lg">
+              Selecione o que você está sentindo hoje.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 w-full">
+            {Object.entries(SENTIMENTOS_CONFIG).map(([chave, dados]) => (
+              <button
+                key={chave}
+                onClick={() => handleSelect(chave)}
+                className="bg-white dark:bg-slate-900/80 p-6 rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all border border-slate-100 dark:border-slate-800 flex flex-col items-center gap-4 group"
+              >
+                <div className={`p-4 rounded-full ${dados.cor} text-white shadow-lg group-hover:scale-110 transition-transform`}>
+                  {dados.icone}
+                </div>
+                <span className="font-bold text-slate-700 dark:text-slate-200 text-lg capitalize">
+                  {dados.titulo}
+                </span>
+              </button>
+            ))}
+          </div>
+        </>
       )}
 
-      {/* GRADE DE OPÇÕES (Só aparece se nada estiver selecionado) */}
-      {!selecionado && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-          {Object.entries(SENTIMENTOS).map(([chave, dados]) => (
-            <button
-              key={chave}
-              onClick={() => handleSelect(chave)}
-              className="bg-white dark:bg-slate-900/80 p-6 rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all border border-slate-100 dark:border-slate-800 flex flex-col items-center gap-4 group"
-            >
-              <div className={`p-4 rounded-full ${dados.cor} text-white shadow-lg group-hover:scale-110 transition-transform`}>
-                {dados.icone}
-              </div>
-              <span className="font-bold text-slate-700 dark:text-slate-200 text-lg capitalize">
-                {dados.titulo}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* VISUALIZAÇÃO DO REMÉDIO (Overlay) */}
-      {selecionado && currentData && (
-        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-500 max-w-2xl mx-auto">
+      {/* --- TELA 2: CARD COMPLETO (Se selecionado) --- */}
+      {selecionado && mensagemDeHoje && configVisual && (
+        <div className="relative w-full max-w-md mx-auto min-h-[680px] rounded-[2.5rem] overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-500 flex flex-col">
           
-          {/* Cabeçalho Colorido */}
-          <div className={`${currentData.cor} p-8 text-white relative overflow-hidden`}>
-            <div className="absolute top-0 right-0 p-8 opacity-20 transform rotate-12 scale-150">
-              {currentData.icone}
-            </div>
-            
-            <button 
-              onClick={() => setSelecionado(null)}
-              className="absolute top-6 left-6 p-2 bg-white/20 backdrop-blur-md rounded-full hover:bg-white/40 transition-colors"
-            >
-              <ArrowLeft size={20} />
-            </button>
+          {/* IMAGEM DE FUNDO FIXA DA CATEGORIA */}
+          <img
+            src={mensagemDeHoje.imagem}
+            alt={configVisual.titulo}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-[30s] hover:scale-110"
+          />
 
-            <div className="mt-8 text-center">
-              <div className="inline-flex p-3 bg-white/20 backdrop-blur-md rounded-full mb-4 shadow-inner">
-                {currentData.icone}
+          {/* OVERLAY ESCURO E GRADIENTE */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-black/30"></div>
+
+          {/* CONTEÚDO DO CARD */}
+          <div className="relative z-10 h-full flex flex-col flex-grow p-8 text-white">
+            
+            {/* Cabeçalho do Card */}
+            <div className="flex justify-between items-center mb-8">
+              <button 
+                onClick={() => setSelecionado(null)}
+                className="p-3 bg-white/10 backdrop-blur-md rounded-full hover:bg-white/20 transition-colors"
+              >
+                <ArrowLeft size={24} />
+              </button>
+              
+              <div className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full">
+                 <span className="text-white">
+                    {configVisual.icone && <div className="scale-75">{configVisual.icone}</div>}
+                 </span>
+                 <span className="uppercase tracking-widest text-[10px] font-bold">
+                  {configVisual.titulo}
+                </span>
               </div>
-              <h2 className="font-serif text-3xl md:text-4xl font-bold mb-2">
-                Para sua {currentData.titulo}
-              </h2>
-              <p className="opacity-90 font-medium">Um remédio do céu.</p>
             </div>
-          </div>
 
-          {/* Conteúdo */}
-          <div className="p-8 md:p-12">
-            
-            {/* Versículo */}
-            <div className="mb-10 text-center">
-              <p className="font-serif text-xl md:text-2xl text-slate-700 dark:text-slate-200 italic leading-relaxed mb-4">
-                "{currentData.biblia}"
-              </p>
-              <span className="text-xs font-bold uppercase tracking-widest text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
-                {currentData.ref}
+            {/* SEÇÃO 1: VERSÍCULO BÍBLICO */}
+            <div className="flex flex-col gap-3 text-center mb-8">
+              <Quote size={28} className="text-white/40 mx-auto rotate-180" />
+              <h2 className="font-serif text-2xl leading-relaxed italic font-medium text-amber-50 drop-shadow-sm">
+                "{mensagemDeHoje.biblia}"
+              </h2>
+              <span className="text-xs font-bold uppercase tracking-widest text-amber-400 mt-2">
+                — {mensagemDeHoje.ref}
               </span>
             </div>
 
-            <div className="border-t border-slate-100 dark:border-slate-800 my-8"></div>
+            {/* Divisória Suave */}
+            <div className="w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mb-8"></div>
 
-            {/* Oração */}
-            <div className="bg-slate-50 dark:bg-slate-950/50 p-8 rounded-3xl border border-slate-100 dark:border-slate-800">
-              <h3 className="text-center text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center justify-center gap-2">
-                <Heart size={14} className="text-rose-500" fill="currentColor" /> Oração
-              </h3>
-              <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-justify md:text-center text-lg">
-                {currentData.oracao}
-              </p>
+            {/* SEÇÃO 2: ORAÇÃO (Card de Vidro) */}
+            <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-6 shadow-lg mb-6 flex-grow flex flex-col justify-center">
+               <h3 className="text-[10px] font-bold uppercase text-white/60 mb-3 flex items-center justify-center gap-2 tracking-widest">
+                 <span className="w-1.5 h-1.5 bg-rose-500 rounded-full"></span> Oração
+               </h3>
+               <p className="text-white/95 leading-relaxed text-center font-light text-lg">
+                 {mensagemDeHoje.oracao}
+               </p>
+               <p className="text-center mt-4 text-xs font-bold text-white/40 uppercase tracking-widest">Amém</p>
             </div>
 
-            <button 
-              onClick={() => setSelecionado(null)}
-              className="w-full mt-8 py-4 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-sm transition-colors flex items-center justify-center gap-2"
-            >
-              <X size={18} /> Escolher outro sentimento
-            </button>
-          </div>
+            {/* Rodapé: Botão Compartilhar */}
+            <div className="mt-auto">
+              <button className="w-full py-4 bg-white text-slate-900 rounded-xl font-bold hover:bg-slate-200 transition-colors flex items-center justify-center gap-2 shadow-lg cursor-pointer">
+                <Share2 size={18} /> Compartilhar Benção
+              </button>
+            </div>
 
+          </div>
         </div>
       )}
     </div>
@@ -185,12 +201,12 @@ export default function SentimentosPage() {
   return (
     <main className="min-h-screen bg-stone-100 dark:bg-slate-950 flex flex-col items-center justify-center p-6 transition-colors duration-500">
       
-      {/* Botão Home Fixo */}
+      {/* Botão Voltar para Home (Fixo no topo esquerdo da tela) */}
       <Link href="/" className="absolute top-6 left-6 p-3 rounded-full bg-white dark:bg-slate-900 shadow-sm hover:scale-110 transition-transform text-slate-400 z-50">
         <ArrowLeft size={24} />
       </Link>
 
-      <Suspense fallback={<div>Carregando...</div>}>
+      <Suspense fallback={<div className="text-slate-400 animate-pulse">Buscando inspiração...</div>}>
         <SentimentosContent />
       </Suspense>
     </main>

@@ -2,278 +2,262 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, FileDown, Trash2, ShieldCheck, Scroll } from "lucide-react";
-import { jsPDF } from "jspdf";
+import { ArrowLeft, ShieldCheck, Download, CheckCircle2, Trash2 } from "lucide-react";
+import jsPDF from "jspdf";
 
-// --- 1. EXAME DE CONSCIÊNCIA (BASEADO NOS MANDAMENTOS) ---
+// --- DADOS DO EXAME DE CONSCIÊNCIA ---
+// Estrutura: Mandamento -> Lista de Pecados (Pergunta + Texto para Confissão)
 const MANDAMENTOS = [
   {
-    id: 1,
     titulo: "1. Amar a Deus sobre todas as coisas",
-    perguntas: [
-      "Neguei a minha fé ou tive vergonha de me declarar católico?",
-      "Deixei de rezar por muito tempo?",
-      "Envolvi-me com superstições, horóscopos ou ocultismo?",
-      "Duvidei da misericórdia ou do poder de Deus?"
+    pecados: [
+      { id: 101, pergunta: "Neguei a minha fé ou tive vergonha de me declarar católico?", confissao: "Neguei a minha fé e tive vergonha de me declarar católico." },
+      { id: 102, pergunta: "Descuidei da minha vida de oração?", confissao: "Descuidei da minha vida de oração diária." },
+      { id: 103, pergunta: "Pratiquei superstições (horóscopo, adivinhações, amuletos)?", confissao: "Pratiquei superstições (horóscopo/adivinhações)." },
     ]
   },
   {
-    id: 2,
     titulo: "2. Não tomar seu Santo Nome em vão",
-    perguntas: [
-      "Falei o nome de Deus sem respeito, em piadas ou raiva?",
-      "Jurei falso ou prometi algo a Deus e não cumpri?",
-      "Blasfemei contra Deus ou os Santos?"
+    pecados: [
+      { id: 201, pergunta: "Falei o nome de Deus sem respeito, em piadas ou raiva?", confissao: "Pronunciei o santo nome de Deus sem respeito ou em momentos de raiva." },
+      { id: 202, pergunta: "Jurei falso ou prometi coisas a Deus e não cumpri?", confissao: "Jurei falso ou não cumpri promessas feitas a Deus." },
     ]
   },
   {
-    id: 3,
     titulo: "3. Guardar domingos e festas",
-    perguntas: [
-      "Faltei à Missa aos domingos ou dias santos por preguiça?",
-      "Cheguei tarde à Missa por culpa própria?",
-      "Trabalhei desnecessariamente aos domingos, esquecendo o descanso?"
+    pecados: [
+      { id: 301, pergunta: "Faltei à Missa aos domingos ou dias santos por preguiça?", confissao: "Faltei à Missa dominical ou em dias de preceito por culpa própria." },
+      { id: 302, pergunta: "Cheguei atrasado ou não prestei atenção na Missa?", confissao: "Cheguei atrasado ou fiquei distraído voluntariamente durante a Missa." },
     ]
   },
   {
-    id: 4,
     titulo: "4. Honrar pai e mãe",
-    perguntas: [
-      "Desobedeci ou faltei com o respeito aos meus pais?",
-      "Deixei de ajudar minha família quando precisavam?",
-      "Fui motivo de tristeza ou discórdia em casa?"
+    pecados: [
+      { id: 401, pergunta: "Desobedeci ou faltei com o respeito aos meus pais?", confissao: "Desobedeci ou faltei com o respeito aos meus pais." },
+      { id: 402, pergunta: "Deixei de ajudar minha família em suas necessidades?", confissao: "Negligenciei a ajuda e o cuidado com minha família." },
     ]
   },
   {
-    id: 5,
     titulo: "5. Não matar (e não ferir)",
-    perguntas: [
-      "Guardei ódio, rancor ou desejo de vingança?",
-      "Feri alguém com palavras duras, ofensas ou fofocas?",
-      "Fui violento ou perdi a paciência agredindo alguém?",
-      "Cometi abusos com álcool, drogas ou gula?",
-      "Induzi alguém a pecar?"
+    pecados: [
+      { id: 501, pergunta: "Guardei ódio, rancor ou desejo de vingança?", confissao: "Guardei ódio, rancor e desejo de vingança no coração." },
+      { id: 502, pergunta: "Fui violento, briguei ou ofendi o próximo?", confissao: "Fui violento, agredi ou ofendi o próximo com palavras duras." },
+      { id: 503, pergunta: "Coloquei minha vida ou a de outros em risco (bebida, imprudência)?", confissao: "Coloquei vidas em risco por imprudência." },
     ]
   },
   {
-    id: 6,
     titulo: "6 e 9. Castidade e Pureza",
-    perguntas: [
-      "Consentí em pensamentos ou desejos impuros?",
-      "Vi pornografia ou conteúdos imorais?",
-      "Cometi atos impuros comigo mesmo ou com outros?",
-      "Faltei com a fidelidade ao meu esposo(a) (em atos ou pensamentos)?",
-      "Usei roupas ou atitudes para provocar os outros?"
+    pecados: [
+      { id: 601, pergunta: "Consenti em pensamentos ou desejos impuros?", confissao: "Consenti em pensamentos e desejos impuros." },
+      { id: 602, pergunta: "Vi pornografia ou conteúdos imorais?", confissao: "Consumi pornografia ou conteúdos imorais." },
+      { id: 603, pergunta: "Pratiquei atos impuros sozinho ou com outra pessoa?", confissao: "Pequei contra a castidade (atos impuros)." },
     ]
   },
   {
-    id: 7,
     titulo: "7 e 10. Não roubar e não cobiçar",
-    perguntas: [
-      "Peguei algo que não era meu?",
-      "Deixei de pagar dívidas ou salários justos?",
-      "Estraguei propriedade alheia ou pública?",
-      "Tive inveja dos bens ou do sucesso dos outros?",
-      "Fui avarento, apegado demais ao dinheiro?"
+    pecados: [
+      { id: 701, pergunta: "Peguei algo que não era meu?", confissao: "Peguei coisas que não me pertenciam." },
+      { id: 702, pergunta: "Prejudiquei alguém nos negócios ou no trabalho?", confissao: "Fui desonesto ou prejudiquei outros no trabalho/negócios." },
+      { id: 703, pergunta: "Sou muito apegado aos bens materiais?", confissao: "Fui excessivamente apegado aos bens materiais e avarento." },
     ]
   },
   {
-    id: 8,
     titulo: "8. Não levantar falso testemunho",
-    perguntas: [
-      "Menti?",
-      "Fiz fofoca ou calúnia (falar mal dos outros)?",
-      "Revelei segredos que deveria guardar?",
-      "Julguei mal as intenções dos outros?"
+    pecados: [
+      { id: 801, pergunta: "Menti?", confissao: "Menti." },
+      { id: 802, pergunta: "Falei mal dos outros (fofoca) ou julguei?", confissao: "Fiz fofocas, calúnias ou julgamentos temerários sobre o próximo." },
     ]
   }
 ];
 
 export default function ConfissaoPage() {
-  // Estado para guardar os itens marcados. Ex: ["1-0", "3-2"] (Mandamento 1, Pergunta 0)
-  const [selecionados, setSelecionados] = useState<string[]>([]);
-  const [gerando, setGerando] = useState(false);
+  // Guarda os IDs dos pecados selecionados
+  const [selecionados, setSelecionados] = useState<number[]>([]);
 
-  // Marca/Desmarca um item
-  const toggleItem = (mandamentoId: number, perguntaIndex: number) => {
-    const id = `${mandamentoId}-${perguntaIndex}`;
-    if (selecionados.includes(id)) {
-      setSelecionados(selecionados.filter(item => item !== id));
-    } else {
-      setSelecionados([...selecionados, id]);
-    }
+  // --- FUNÇÃO DE TOGGLE (MARCAR/DESMARCAR) ---
+  const togglePecado = (id: number) => {
+    setSelecionados((prev) => 
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
   };
 
-  const limparTudo = () => {
-    if (confirm("Deseja desmarcar tudo?")) {
-      setSelecionados([]);
-    }
-  };
-
-  // --- FUNÇÃO QUE GERA O PDF ---
+  // --- GERAR PDF COM OS TEXTOS DE CONFISSÃO ---
   const gerarPDF = () => {
-    setGerando(true);
     const doc = new jsPDF();
+    const margemEsquerda = 20;
+    let y = 20; // Posição vertical inicial
 
-    // Configuração da Fonte
-    doc.setFont("times", "normal");
-    
     // Título
+    doc.setFont("times", "bold");
     doc.setFontSize(22);
-    doc.text("Minha Confissão", 105, 20, { align: "center" });
+    doc.text("Minha Confissão", margemEsquerda, y);
     
-    // Data
+    y += 10;
     doc.setFontSize(10);
-    doc.text(`Gerado em: ${new Date().toLocaleDateString()}`, 105, 28, { align: "center" });
+    doc.setFont("helvetica", "normal");
+    doc.text(`Gerado em: ${new Date().toLocaleDateString()}`, margemEsquerda, y);
 
-    doc.line(20, 32, 190, 32); // Linha divisória
+    y += 15;
 
-    // Lista de Pecados
-    let y = 40; // Posição vertical inicial
-    doc.setFontSize(12);
-
+    // Se não tiver nada marcado
     if (selecionados.length === 0) {
-      doc.text("Nenhum item marcado para esta confissão.", 20, y);
+      doc.setFontSize(12);
+      doc.text("Nenhum pecado apontado neste exame.", margemEsquerda, y);
     } else {
-      MANDAMENTOS.forEach((m) => {
-        // Filtra quais perguntas desse mandamento foram marcadas
-        const pecadosDesteMandamento = m.perguntas.filter((_, idx) => 
-          selecionados.includes(`${m.id}-${idx}`)
-        );
+      // Loop pelos Mandamentos
+      MANDAMENTOS.forEach((grupo) => {
+        // Filtra os pecados deste grupo que foram selecionados
+        const pecadosDoGrupo = grupo.pecados.filter(p => selecionados.includes(p.id));
 
-        if (pecadosDesteMandamento.length > 0) {
+        if (pecadosDoGrupo.length > 0) {
+          // Verifica se cabe na página
+          if (y > 270) { doc.addPage(); y = 20; }
+
           // Título do Mandamento
-          if (y > 270) { doc.addPage(); y = 20; } // Nova página se acabar o espaço
-          doc.setFont("times", "bold");
-          doc.text(m.titulo, 20, y);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(12);
+          doc.setTextColor(50, 50, 50); // Cinza escuro
+          doc.text(grupo.titulo, margemEsquerda, y);
           y += 7;
 
-          // Os Pecados
-          doc.setFont("times", "normal");
-          pecadosDesteMandamento.forEach((p) => {
-            if (y > 280) { doc.addPage(); y = 20; }
-            // Quebra de linha manual simples para textos longos (se necessário)
-            const splitText = doc.splitTextToSize(`- ${p}`, 170);
-            doc.text(splitText, 20, y);
-            y += (splitText.length * 6);
+          // Lista os Pecados (USANDO O TEXTO DE CONFISSÃO)
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(11);
+          doc.setTextColor(0, 0, 0); // Preto
+
+          pecadosDoGrupo.forEach((pecado) => {
+             // Quebra de linha automática se o texto for longo
+             const textoQuebrado = doc.splitTextToSize(`• ${pecado.confissao}`, 170);
+             
+             if (y + (textoQuebrado.length * 5) > 280) { doc.addPage(); y = 20; }
+             
+             doc.text(textoQuebrado, margemEsquerda, y);
+             y += (textoQuebrado.length * 6); // Espaçamento
           });
-          y += 4; // Espaço extra entre grupos
+
+          y += 5; // Espaço entre grupos
         }
       });
     }
 
     // Ato de Contrição no Final
     if (y > 240) { doc.addPage(); y = 20; }
+    
     y += 10;
-    doc.line(20, y, 190, y);
+    doc.setDrawColor(200);
+    doc.line(margemEsquerda, y, 190, y); // Linha divisória
     y += 10;
+    
+    doc.setFont("times", "bold");
+    doc.setFontSize(14);
+    doc.text("Ato de Contrição:", margemEsquerda, y);
+    y += 8;
+    
     doc.setFont("times", "italic");
-    doc.setFontSize(11);
-    doc.text("Ato de Contrição:", 20, y);
-    y += 6;
-    const ato = "Meu Deus, eu me arrependo de todo o coração de vos ter ofendido, porque sois tão bom e amável. Prometo, com a vossa graça, nunca mais pecar. Meu Jesus, misericórdia!";
-    const splitAto = doc.splitTextToSize(ato, 170);
-    doc.text(splitAto, 20, y);
+    doc.setFontSize(12);
+    const atocon = "Meu Deus, eu me arrependo de todo o coração de vos ter ofendido, porque sois tão bom e amável. Prometo, com a vossa graça, nunca mais pecar. Meu Jesus, misericórdia!";
+    const atoQuebrado = doc.splitTextToSize(atocon, 170);
+    doc.text(atoQuebrado, margemEsquerda, y);
 
     // Salva o arquivo
     doc.save("minha-confissao-lumen.pdf");
-    setGerando(false);
   };
 
   return (
-    <main className="min-h-screen bg-stone-100 dark:bg-slate-950 transition-colors duration-500 pb-32">
+    <main className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center py-10 px-4">
       
-      {/* Header Fixo */}
-      <header className="sticky top-0 z-40 bg-stone-100/90 dark:bg-slate-950/90 backdrop-blur-md border-b border-stone-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="p-2 -ml-2 text-slate-500 hover:text-sky-600 dark:hover:text-sky-400 transition-colors">
-            <ArrowLeft size={24} />
-          </Link>
-          <div>
-            <h1 className="font-bold text-sky-900 dark:text-sky-100 leading-none">Exame de Consciência</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
-              <ShieldCheck size={10} /> Privado e Seguro
-            </p>
-          </div>
+      {/* HEADER */}
+      <div className="w-full max-w-2xl flex items-center justify-between mb-10">
+        <Link href="/" className="p-2 bg-white dark:bg-slate-900 rounded-full shadow-sm hover:scale-105 transition-transform">
+          <ArrowLeft size={24} className="text-slate-600 dark:text-slate-300" />
+        </Link>
+        <div className="flex items-center gap-2">
+          <ShieldCheck size={28} className="text-violet-600 dark:text-violet-400" />
+          <h1 className="font-serif text-2xl font-bold text-slate-800 dark:text-white">Exame de Consciência</h1>
         </div>
-        
-        {selecionados.length > 0 && (
-          <button onClick={limparTudo} className="text-rose-500 hover:bg-rose-100 dark:hover:bg-rose-900/30 p-2 rounded-full transition-colors" title="Limpar tudo">
-            <Trash2 size={20} />
-          </button>
-        )}
-      </header>
+        <div className="w-10"></div> {/* Espaçador */}
+      </div>
 
-      {/* Lista de Mandamentos */}
-      <div className="max-w-2xl mx-auto p-6 space-y-8">
-        
-        <div className="bg-sky-100 dark:bg-sky-900/30 text-sky-800 dark:text-sky-200 p-4 rounded-xl text-sm mb-6 flex gap-3 items-start border border-sky-200 dark:border-sky-800">
-           <Scroll className="shrink-0 mt-0.5" size={18} />
-           <p>Marque os pontos em que você falhou. Ao final, gere um PDF para levar ao sacerdote. Nada fica salvo no site.</p>
-        </div>
+      <p className="text-slate-600 dark:text-slate-400 text-center max-w-lg mb-8 text-sm">
+        Marque com sinceridade o que pesa em seu coração. <br/>
+        Ao final, gere seu guia privado para levar à confissão.
+      </p>
 
-        {MANDAMENTOS.map((m) => (
-          <section key={m.id} className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <h2 className="font-serif text-xl font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-              <span className="bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 w-8 h-8 rounded-full flex items-center justify-center text-sm">
-                {m.id}
-              </span>
-              {m.titulo}
-            </h2>
+      {/* --- LISTA DE MANDAMENTOS E PECADOS --- */}
+      <div className="w-full max-w-2xl space-y-8 mb-32">
+        {MANDAMENTOS.map((grupo, idx) => (
+          <div key={idx} className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
+            <h3 className="font-bold text-violet-700 dark:text-violet-300 mb-4 text-lg border-b border-slate-100 dark:border-slate-800 pb-2">
+              {grupo.titulo}
+            </h3>
             
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-stone-200 dark:border-slate-800 overflow-hidden">
-              {m.perguntas.map((pergunta, idx) => {
-                const isChecked = selecionados.includes(`${m.id}-${idx}`);
+            <div className="space-y-3">
+              {grupo.pecados.map((item) => {
+                const isSelected = selecionados.includes(item.id);
                 return (
-                  <label 
-                    key={idx} 
-                    className={`flex items-start gap-4 p-4 border-b border-stone-100 dark:border-slate-800 last:border-0 cursor-pointer transition-colors
-                      ${isChecked ? 'bg-sky-50 dark:bg-sky-900/10' : 'hover:bg-stone-50 dark:hover:bg-slate-800/50'}
+                  <div 
+                    key={item.id} 
+                    onClick={() => togglePecado(item.id)}
+                    className={`flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200 border
+                      ${isSelected 
+                        ? 'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-700' 
+                        : 'bg-slate-50 dark:bg-slate-950 border-transparent hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }
                     `}
                   >
-                    <div className={`mt-1 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all shrink-0
-                      ${isChecked 
-                        ? 'bg-sky-500 border-sky-500 text-white' 
-                        : 'border-slate-300 dark:border-slate-600 bg-transparent'
+                    <div className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors
+                      ${isSelected 
+                        ? 'bg-violet-600 border-violet-600 text-white' 
+                        : 'border-slate-300 dark:border-slate-600 text-transparent'
                       }
                     `}>
-                      {isChecked && <CheckCircle2 size={16} />}
-                      <input 
-                        type="checkbox" 
-                        className="hidden" 
-                        checked={isChecked} 
-                        onChange={() => toggleItem(m.id, idx)}
-                      />
+                      <CheckCircle2 size={14} strokeWidth={4} />
                     </div>
-                    <span className={`text-sm md:text-base ${isChecked ? 'text-slate-800 dark:text-sky-100 font-medium' : 'text-slate-600 dark:text-slate-400'}`}>
-                      {pergunta}
-                    </span>
-                  </label>
-                )
+                    
+                    {/* AQUI MOSTRAMOS A PERGUNTA (NA TELA) */}
+                    <p className={`text-sm md:text-base leading-relaxed select-none
+                      ${isSelected ? 'text-violet-900 dark:text-violet-100 font-medium' : 'text-slate-600 dark:text-slate-400'}
+                    `}>
+                      {item.pergunta}
+                    </p>
+                  </div>
+                );
               })}
             </div>
-          </section>
+          </div>
         ))}
       </div>
 
-      {/* BARRA FIXA INFERIOR (AÇÃO) */}
-      <div className="fixed bottom-0 left-0 w-full p-4 bg-white/90 dark:bg-slate-950/90 backdrop-blur-lg border-t border-slate-100 dark:border-slate-800 z-50">
+      {/* --- BARRA FIXA INFERIOR --- */}
+      <div className="fixed bottom-0 left-0 w-full p-4 bg-white/90 dark:bg-slate-950/90 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 z-50">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
-          <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
-            {selecionados.length} {selecionados.length === 1 ? 'item marcado' : 'itens marcados'}
-          </div>
           
-          <button 
-            onClick={gerarPDF}
-            disabled={selecionados.length === 0 || gerando}
-            className="bg-sky-600 hover:bg-sky-500 dark:bg-sky-700 dark:hover:bg-sky-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-sky-200/50 dark:shadow-none disabled:opacity-50 disabled:shadow-none transition-all flex items-center gap-2"
-          >
-            {gerando ? 'Gerando...' : (
-              <>
-                <FileDown size={20} /> Baixar Confissão
-              </>
+          <div className="text-sm">
+            <span className="font-bold text-slate-800 dark:text-white">{selecionados.length}</span>
+            <span className="text-slate-500"> itens marcados</span>
+          </div>
+
+          <div className="flex gap-3">
+            {selecionados.length > 0 && (
+              <button 
+                onClick={() => setSelecionados([])}
+                className="p-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-colors"
+                title="Limpar tudo"
+              >
+                <Trash2 size={20} />
+              </button>
             )}
-          </button>
+            
+            <button 
+              onClick={gerarPDF}
+              disabled={selecionados.length === 0}
+              className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:text-slate-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-violet-200 dark:shadow-none transition-all active:scale-95"
+            >
+              <Download size={20} />
+              Baixar Guia PDF
+            </button>
+          </div>
+
         </div>
       </div>
 
